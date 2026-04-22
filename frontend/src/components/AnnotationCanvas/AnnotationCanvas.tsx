@@ -23,21 +23,23 @@ const AnnotationCanvas: React.FC<AnnotationCanvasProps> = ({ activeTool }) => {
 
     // 绘制所有标注
     annotations.forEach((annotation) => {
+      const coords = annotation.coordinates;
       ctx.strokeStyle = selectedAnnotation?.id === annotation.id ? '#1890ff' : '#52c41a';
       ctx.lineWidth = 2;
 
-      if (annotation.type === 'point') {
-        const point = annotation.coordinates[0];
+      if (annotation.type === 'point' && coords.length > 0) {
+        const point = coords[0];
         ctx.beginPath();
         ctx.arc(point.x, point.y, 6, 0, Math.PI * 2);
         ctx.fill();
         ctx.stroke();
-      } else if (annotation.type === 'rectangle') {
-        const [p1, p2] = annotation.coordinates;
+      } else if (annotation.type === 'rectangle' && coords.length >= 2) {
+        const p1 = coords[0];
+        const p2 = coords[1];
         ctx.strokeRect(p1.x, p1.y, p2.x - p1.x, p2.y - p1.y);
-      } else if (annotation.type === 'polygon') {
+      } else if (annotation.type === 'polygon' && coords.length >= 3) {
         ctx.beginPath();
-        annotation.coordinates.forEach((point, index) => {
+        coords.forEach((point, index) => {
           if (index === 0) {
             ctx.moveTo(point.x, point.y);
           } else {
@@ -68,7 +70,7 @@ const AnnotationCanvas: React.FC<AnnotationCanvasProps> = ({ activeTool }) => {
     } else if (activeTool === 'select') {
       // 查找点击的标注
       const clicked = annotations.find((annotation) => {
-        if (annotation.type === 'point') {
+        if (annotation.type === 'point' && annotation.coordinates.length > 0) {
           const point = annotation.coordinates[0];
           const distance = Math.sqrt(
             Math.pow(point.x - x, 2) + Math.pow(point.y - y, 2)

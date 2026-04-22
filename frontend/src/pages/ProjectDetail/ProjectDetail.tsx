@@ -2,17 +2,21 @@ import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Card, Button, Upload, List, message } from 'antd';
 import { ArrowLeftOutlined, UploadOutlined } from '@ant-design/icons';
+import type { UploadProps } from 'antd';
 
 const ProjectDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [images, setImages] = useState<{ id: string; name: string; url: string }[]>([]);
 
-  const handleUpload = (info: { file: { status: string; name: string } }) => {
-    if (info.file.status === 'done') {
-      message.success(`${info.file.name} 上传成功`);
-      setImages([...images, { id: Date.now().toString(), name: info.file.name, url: '' }]);
-    }
+  const uploadProps: UploadProps = {
+    showUploadList: false,
+    onChange: (info) => {
+      if (info.file.status === 'done') {
+        message.success(`${info.file.name} 上传成功`);
+        setImages([...images, { id: Date.now().toString(), name: info.file.name, url: '' }]);
+      }
+    },
   };
 
   return (
@@ -22,7 +26,7 @@ const ProjectDetail: React.FC = () => {
       </Button>
 
       <Card title={`项目 ${id}`} style={{ marginTop: '16px' }}>
-        <Upload onChange={handleUpload} showUploadList={false}>
+        <Upload {...uploadProps}>
           <Button icon={<UploadOutlined />}>上传影像</Button>
         </Upload>
 

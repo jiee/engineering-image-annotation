@@ -21,7 +21,7 @@ export interface Image {
   width?: number;
   height?: number;
   mime_type?: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
   created_at: string;
   annotation_count?: number;
 }
@@ -40,16 +40,16 @@ export interface AnnotationProperties {
   name?: string;
   description?: string;
   status?: string;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 // 标注类型定义
 export interface Annotation {
   id: string;
-  project_id: string;
-  image_id: string;
+  project_id?: string;
+  image_id?: string;
   type: AnnotationType;
-  coordinates: Point[] | Point[][];
+  coordinates: Point[];
   properties?: AnnotationProperties;
   attachments?: string[];
   created_at?: string;

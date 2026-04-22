@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Card, Input, Select, Button, Upload, List, message } from 'antd';
 import { DeleteOutlined, EyeOutlined } from '@ant-design/icons';
 import { useStore } from '../../store/index';
+import type { UploadProps } from 'antd';
 
 const { TextArea } = Input;
 const { Option } = Select;
@@ -29,12 +30,15 @@ const PropertyPanel: React.FC = () => {
     }
   };
 
-  const handleUpload = (info: { file: { status: string; name: string } }) => {
-    if (info.file.status === 'done') {
-      message.success(`${info.file.name} 上传成功`);
-    } else if (info.file.status === 'error') {
-      message.error(`${info.file.name} 上传失败`);
-    }
+  const uploadProps: UploadProps = {
+    showUploadList: false,
+    onChange: (info) => {
+      if (info.file.status === 'done') {
+        message.success(`${info.file.name} 上传成功`);
+      } else if (info.file.status === 'error') {
+        message.error(`${info.file.name} 上传失败`);
+      }
+    },
   };
 
   if (!selectedAnnotation) {
@@ -86,7 +90,7 @@ const PropertyPanel: React.FC = () => {
 
       <div style={{ marginBottom: '16px' }}>
         <label style={{ display: 'block', marginBottom: '8px' }}>附件</label>
-        <Upload onChange={handleUpload} showUploadList={false}>
+        <Upload {...uploadProps}>
           <Button style={{ width: '100%' }}>上传附件</Button>
         </Upload>
       </div>
@@ -94,7 +98,7 @@ const PropertyPanel: React.FC = () => {
       <List
         size="small"
         dataSource={[]}
-        renderItem={(item: unknown) => (
+        renderItem={() => (
           <List.Item
             actions={[
               <EyeOutlined key="view" />,
