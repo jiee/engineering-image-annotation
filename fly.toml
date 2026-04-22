@@ -1,0 +1,29 @@
+app = "engineering-image-annotation"
+primary_region = "sin"
+
+[build]
+
+[env]
+  NODE_ENV = "production"
+  PORT = "8080"
+
+[mounts]
+  source = "data"
+  destination = "/app/data"
+
+[[services]]
+  internal_port = 8080
+  protocol = "tcp"
+
+  [[services.ports]]
+    force_https = true
+    handlers = ["http"]
+    port = 80
+
+  [[services.ports]]
+    handlers = ["tls", "http"]
+    port = 443
+
+  [[services.tcp_checks]]
+    interval = "15s"
+    timeout = "2s"
