@@ -1,234 +1,111 @@
-import React, { useState, useEffect } from 'react';
-import { Form, Input, Select, Button, Divider, Upload, List, message } from 'antd';
-import { 
-  DeleteOutlined, 
-  PaperClipOutlined, 
-  UploadOutlined, 
-  InboxOutlined,
-  FileImageOutlined,
-  FilePdfOutlined,
-  FileOutlined,
-} from '@ant-design/icons';
-import { useStore } from '../../store';
-import { annotationApi, attachmentApi } from '../../utils/api';
-import { formatFileSize, formatDateTime } from '../../utils/helpers';
-import { Attachment } from '../../types';
+import React, { useState } from 'react';
+import { Card, Input, Select, Button, Upload, List, message } from 'antd';
+import { DeleteOutlined, EyeOutlined } from '@ant-design/icons';
+import { useStore } from '../../store/index';
 
-const { Option } = Select;
 const { TextArea } = Input;
-const { Dragger } = Upload;
+const { Option } = Select;
 
 const PropertyPanel: React.FC = () => {
-  const { selectedAnnotation, setSelectedAnnotation, updateAnnotation, deleteAnnotation, annotations, setAnnotations } = useStore();
-  const [form] = Form.useForm();
-  const [attachments, setAttachments] = useState<Attachment[]>([]);
-  const [loading, setLoading] = useState(false);
+  const { selectedAnnotation, updateAnnotation } = useStore();
+  const [name, setName] = useState('');
+  const [description, setDescription] = useState('');
+  const [status, setStatus] = useState('pending');
 
-  // 加载选中标注的附件
-  useEffect(() => {
+  React.useEffect(() => {
     if (selectedAnnotation) {
-      loadAttachments(selectedAnnotation.id);
-      form.setFieldsValue({
-        name: selectedAnnotation.properties?.name || '',
-        description: selectedAnnotation.properties?.description || '',
-        status: selectedAnnotation.properties?.status || '待处理',
-      });
-    } else {
-      setAttachments([]);
-      form.resetFields();
+      setName(selectedAnnotation.properties?.name || '');
+      setDescription(selectedAnnotation.properties?.description || '');
+      setStatus(selectedAnnotation.properties?.status || 'pending');
     }
   }, [selectedAnnotation]);
 
-  const loadAttachments = async (annotationId: string) => {
-    try {
-      const response = await attachmentApi.getAttachments(annotationId);
-      setAttachments(response.data);
-    } catch (error) {
-      console.error('加载附件失败:', error);
-    }
-  };
-
-  // 更新标注属性
-  const handleUpdateProperties = async (values: any) => {
-    if (!selectedAnnotation) return;
-
-    try {
-      const response = await annotationApi.updateAnnotation(selectedAnnotation.id, {
-        properties: values,
+  const handleUpdate = () => {
+    if (selectedAnnotation && updateAnnotation) {
+      updateAnnotation(selectedAnnotation.id, {
+        properties: { name, description, status },
       });
-      updateAnnotation(selectedAnnotation.id, { properties: values });
-      message.success('属性已更新');
-    } catch (error) {
-      message.error('更新失败');
+      message.success('更新成功');
     }
   };
 
-  // 删除标注
-  const handleDelete = async () => {
-    if (!selectedAnnotation) return;
-
-    try {
-      await annotationApi.deleteAnnotation(selectedAnnotation.id);
-      deleteAnnotation(selectedAnnotation.id);
-      message.success('标注已删除');
-    } catch (error) {
-      message.error('删除失败');
+  const handleUpload = (info: { file: { status: string; name: string } }) => {
+    if (info.file.status === 'done') {
+      message.success(`${info.file.name} 上传成功`);
+    } else if (info.file.status === 'error') {
+      message.error(`${info.file.name} 上传失败`);
     }
-  };
-
-  // 上传附件
-  const handleUploadAttachment = async (file: File) => {
-    if (!selectedAnnotation) {
-      message.warning('请先选择标注');
-      return false;
-    }
-
-    setLoading(true);
-    try {
-      const response = await attachmentApi.uploadAttachment(selectedAnnotation.id, file);
-      setAttachments([...attachments, response.data]);
-      message.success('附件上传成功');
-    } catch (error) {
-      message.error('上传失败');
-    } finally {
-      setLoading(false);
-    }
-    return false; // 阻止默认上传
-  };
-
-  // 删除附件
-  const handleDeleteAttachment = async (attachmentId: string) => {
-    try {
-      await attachmentApi.deleteAttachment(attachmentId);
-      setAttachments(attachments.filter((a) => a.id !== attachmentId));
-      message.success('附件已删除');
-    } catch (error) {
-      message.error('删除失败');
-    }
-  };
-
-  // 获取文件图标
-  const getFileIcon = (mimeType: string) => {
-    if (mimeType?.startsWith('image/')) return <FileImageOutlined style={{ color: '#1890ff' }} />;
-    if (mimeType?.includes('pdf')) return <FilePdfOutlined style={{ color: '#ff4d4f' }} />;
-    return <FileOutlined style={{ color: '#52c41a' }} />;
-  };
-
-  // 标注类型显示
-  const typeLabels: Record<string, string> = {
-    point: '点标注',
-    rectangle: '矩形标注',
-    polygon: '多边形标注',
   };
 
   if (!selectedAnnotation) {
     return (
-      <div style={{ padding: '24px', textAlign: 'center', color: '#999' }}>
-        <div style={{ fontSize: '48px', marginBottom: '16px' }}>
-          <PaperClipOutlined />
+      <Card title="属性面板" style={{ height: '100%', overflow: 'auto' }}>
+        <div style={{ textAlign: 'center', color: '#999', padding: '20px' }}>
+          请选择一个标注
         </div>
-        <div>选择标注以查看属性</div>
-      </div>
+      </Card>
     );
   }
 
   return (
-    <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-      {/* 标注信息 */}
-      <div style={{ padding: '16px', borderBottom: '1px solid #e8e8e8' }}>
-        <div style={{ fontSize: '16px', fontWeight: 600, marginBottom: '8px' }}>
-          标注详情
-        </div>
-        <div style={{ fontSize: '12px', color: '#999' }}>
-          <span style={{ marginRight: '16px' }}>
-            类型: {typeLabels[selectedAnnotation.type]}
-          </span>
-          <span>
-            ID: {selectedAnnotation.id}
-          </span>
-        </div>
+    <Card title="属性面板" style={{ height: '100%', overflow: 'auto' }}>
+      <div style={{ marginBottom: '16px' }}>
+        <label style={{ display: 'block', marginBottom: '8px' }}>编号</label>
+        <Input value={selectedAnnotation.id} disabled />
       </div>
 
-      {/* 属性表单 */}
-      <div style={{ flex: 1, overflow: 'auto', padding: '16px' }}>
-        <Form
-          form={form}
-          layout="vertical"
-          onValuesChange={handleUpdateProperties}
-        >
-          <Form.Item label="名称" name="name">
-            <Input placeholder="请输入标注名称" />
-          </Form.Item>
+      <div style={{ marginBottom: '16px' }}>
+        <label style={{ display: 'block', marginBottom: '8px' }}>名称</label>
+        <Input value={name} onChange={(e) => setName(e.target.value)} />
+      </div>
 
-          <Form.Item label="描述" name="description">
-            <TextArea rows={3} placeholder="请输入标注描述" />
-          </Form.Item>
+      <div style={{ marginBottom: '16px' }}>
+        <label style={{ display: 'block', marginBottom: '8px' }}>描述</label>
+        <TextArea
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+          rows={3}
+        />
+      </div>
 
-          <Form.Item label="状态" name="status">
-            <Select>
-              <Option value="待处理">待处理</Option>
-              <Option value="进行中">进行中</Option>
-              <Option value="已完成">已完成</Option>
-              <Option value="异常">异常</Option>
-            </Select>
-          </Form.Item>
+      <div style={{ marginBottom: '16px' }}>
+        <label style={{ display: 'block', marginBottom: '8px' }}>状态</label>
+        <Select value={status} onChange={setStatus} style={{ width: '100%' }}>
+          <Option value="pending">待核查</Option>
+          <Option value="issue">已发现问题</Option>
+          <Option value="assigned">已派发</Option>
+          <Option value="fixing">整改中</Option>
+          <Option value="reviewed">已复查</Option>
+          <Option value="closed">已关闭</Option>
+        </Select>
+      </div>
 
-          <Divider>附件管理</Divider>
+      <Button type="primary" onClick={handleUpdate} style={{ width: '100%', marginBottom: '16px' }}>
+        保存修改
+      </Button>
 
-          <Dragger
-            showUploadList={false}
-            beforeUpload={handleUploadAttachment}
-            accept="*"
-            disabled={loading}
+      <div style={{ marginBottom: '16px' }}>
+        <label style={{ display: 'block', marginBottom: '8px' }}>附件</label>
+        <Upload onChange={handleUpload} showUploadList={false}>
+          <Button style={{ width: '100%' }}>上传附件</Button>
+        </Upload>
+      </div>
+
+      <List
+        size="small"
+        dataSource={[]}
+        renderItem={(item: unknown) => (
+          <List.Item
+            actions={[
+              <EyeOutlined key="view" />,
+              <DeleteOutlined key="delete" />,
+            ]}
           >
-            <p className="ant-upload-drag-icon">
-              <InboxOutlined />
-            </p>
-            <p className="ant-upload-text">点击或拖拽上传附件</p>
-            <p className="ant-upload-hint">支持任意格式文件</p>
-          </Dragger>
-
-          {attachments.length > 0 && (
-            <List
-              size="small"
-              style={{ marginTop: '16px' }}
-              dataSource={attachments}
-              renderItem={(item) => (
-                <List.Item
-                  actions={[
-                    <Button
-                      type="text"
-                      danger
-                      size="small"
-                      icon={<DeleteOutlined />}
-                      onClick={() => handleDeleteAttachment(item.id)}
-                    />
-                  ]}
-                >
-                  <List.Item.Meta
-                    avatar={getFileIcon(item.mime_type)}
-                    title={item.original_name}
-                    description={formatFileSize(item.file_size || 0)}
-                  />
-                </List.Item>
-              )}
-            />
-          )}
-        </Form>
-      </div>
-
-      {/* 操作按钮 */}
-      <div style={{ padding: '16px', borderTop: '1px solid #e8e8e8' }}>
-        <Button
-          danger
-          block
-          icon={<DeleteOutlined />}
-          onClick={handleDelete}
-        >
-          删除标注
-        </Button>
-      </div>
-    </div>
+            附件项
+          </List.Item>
+        )}
+      />
+    </Card>
   );
 };
 
