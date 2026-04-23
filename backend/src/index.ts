@@ -21,8 +21,8 @@ app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
 // 确保必要目录存在
-const uploadDir = process.env.UPLOAD_DIR || './uploads';
-const dataDir = path.dirname(process.env.DB_PATH || './data/annotations.db');
+const uploadDir = process.env.UPLOAD_DIR || '/app/uploads';
+const dataDir = path.dirname(process.env.DB_PATH || '/app/data/annotations.db');
 if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir, { recursive: true });
 }
@@ -31,7 +31,7 @@ if (!fs.existsSync(dataDir)) {
 }
 
 // 静态文件服务 - 上传的文件
-app.use('/uploads', express.static(path.resolve(uploadDir)));
+app.use('/uploads', express.static(uploadDir));
 
 // API 路由
 app.use('/api/projects', projectsRouter);
@@ -46,13 +46,23 @@ app.get('/api/health', (req, res) => {
 
 // 生产环境 - 服务前端静态文件
 if (process.env.NODE_ENV === 'production') {
-  const publicPath = path.join(__dirname, '../../public');
+  // public 目录在 /app/public
+  const publicPath = '/app/public';
+  
+  console.log('静态文件目录:', publicPath);
+  console.log('目录内容:', fs.existsSync(publicPath) ? fs.readdirSync(publicPath) : '目录不存在');
+  
   app.use(express.static(publicPath));
   
   // SPA 回退 - 所有非 API 路由返回 index.html
   app.get('*', (req, res) => {
-    if (!req.path.startsWith('/api')) {
-      res.sendFile(path.join(publicPath, 'index.html'));
+    if (!req.path.startsWith('/api') && !req.path.startsWith('/uploads')) {
+      const indexPath = path.join(publicPath, 'index.html');
+      if (fs.existsSync(indexPath)) {
+        res.sendFile(indexPath);
+      } else {
+        res.status(404).json({ error: 'index.html not found' });
+      }
     }
   });
 }
@@ -66,7 +76,7 @@ app.use((err: Error, req: express.Request, res: express.Response, next: express.
 // 初始化数据库并启动服务器
 initializeDatabase();
 
-app.listen(PORT, () => {
+app.listen(PORT, '0.0.0.0', () => {
   console.log(`
 ╔══════════════════════════════════════════════════════════╗
 ║     工程现场影像智能标注与关联系统                        ║
