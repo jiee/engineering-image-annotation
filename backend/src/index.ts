@@ -23,11 +23,24 @@ app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 // 确保必要目录存在
 const uploadDir = process.env.UPLOAD_DIR || '/app/uploads';
 const dataDir = path.dirname(process.env.DB_PATH || '/app/data/annotations.db');
-if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir, { recursive: true });
-}
-if (!fs.existsSync(dataDir)) {
-  fs.mkdirSync(dataDir, { recursive: true });
+
+console.log('=== 启动配置 ===');
+console.log('NODE_ENV:', process.env.NODE_ENV);
+console.log('PORT:', PORT);
+console.log('UPLOAD_DIR:', uploadDir);
+console.log('DB_PATH:', process.env.DB_PATH);
+
+try {
+  if (!fs.existsSync(uploadDir)) {
+    fs.mkdirSync(uploadDir, { recursive: true });
+    console.log('创建上传目录:', uploadDir);
+  }
+  if (!fs.existsSync(dataDir)) {
+    fs.mkdirSync(dataDir, { recursive: true });
+    console.log('创建数据目录:', dataDir);
+  }
+} catch (err) {
+  console.error('创建目录失败:', err);
 }
 
 // 静态文件服务 - 上传的文件
@@ -45,25 +58,37 @@ app.get('/api/health', (req, res) => {
 });
 
 // 生产环境 - 服务前端静态文件
-if (process.env.NODE_ENV === 'production') {
-  // public 目录在 /app/public
-  const publicPath = '/app/public';
-  
-  console.log('静态文件目录:', publicPath);
-  console.log('目录内容:', fs.existsSync(publicPath) ? fs.readdirSync(publicPath) : '目录不存在');
+const publicPath = '/app/public';
+console.log('静态文件目录:', publicPath);
+console.log('静态文件目录是否存在:', fs.existsSync(publicPath));
+
+if (fs.existsSync(publicPath)) {
+  const files = fs.readdirSync(publicPath);
+  console.log('静态文件目录内容:', files);
+  console.log('index.html 是否存在:', files.includes('index.html'));
   
   app.use(express.static(publicPath));
   
-  // SPA 回退 - 所有非 API 路由返回 index.html
-  app.get('*', (req, res) => {
-    if (!req.path.startsWith('/api') && !req.path.startsWith('/uploads')) {
-      const indexPath = path.join(publicPath, 'index.html');
-      if (fs.existsSync(indexPath)) {
-        res.sendFile(indexPath);
-      } else {
-        res.status(404).json({ error: 'index.html not found' });
-      }
+  // SPA 回退
+  app.get('*', (req, res, next) => {
+    if (req.path.startsWith('/api') || req.path.startsWith('/uploads')) {
+      return next();
     }
+    const indexPath = path.join(publicPath, 'index.html');
+    if (fs.existsSync(indexPath)) {
+      res.sendFile(indexPath);
+    } else {
+      res.status(404).json({ error: 'index.html not found', path: indexPath });
+    }
+  });
+} else {
+  console.error('静态文件目录不存在:', publicPath);
+  // 如果没有前端，只提供 API
+  app.get('*', (req, res) => {
+    if (req.path.startsWith('/api')) {
+      return;
+    }
+    res.status(404).json({ error: '前端文件未部署', publicPath });
   });
 }
 
@@ -73,8 +98,13 @@ app.use((err: Error, req: express.Request, res: express.Response, next: express.
   res.status(500).json({ error: '服务器内部错误', message: err.message });
 });
 
-// 初始化数据库并启动服务器
-initializeDatabase();
+// 初始化数据库
+try {
+  initializeDatabase();
+  console.log('数据库初始化成功');
+} catch (err) {
+  console.error('数据库初始化失败:', err);
+}
 
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`
