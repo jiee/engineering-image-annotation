@@ -13,7 +13,7 @@ import attachmentsRouter from './routes/attachments';
 dotenv.config();
 
 const app = express();
-const PORT = process.env.PORT || 8080;
+const PORT: number = parseInt(process.env.PORT || '8080', 10);
 
 // 中间件
 app.use(cors());
@@ -83,7 +83,6 @@ if (fs.existsSync(publicPath)) {
   });
 } else {
   console.error('静态文件目录不存在:', publicPath);
-  // 如果没有前端，只提供 API
   app.get('*', (req, res) => {
     if (req.path.startsWith('/api')) {
       return;
