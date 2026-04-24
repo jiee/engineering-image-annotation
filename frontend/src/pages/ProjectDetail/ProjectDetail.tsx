@@ -143,7 +143,7 @@ const ProjectDetail: React.FC = () => {
                       key="annotate"
                       type="link"
                       icon={<AimOutlined />}
-                      onClick={() => navigate(`/annotate/${id}/${item.id}`)}
+                      onClick={() => navigate(`/projects/${id}/images/${item.id}`)}
                     >
                       标注
                     </Button>,
