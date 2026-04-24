@@ -18,7 +18,7 @@ interface ImageItem {
 }
 
 const ProjectDetail: React.FC = () => {
-  const { id } = useParams<{ id: string }>();
+  const { projectId } = useParams<{ projectId: string }>();
   const navigate = useNavigate();
   const [images, setImages] = useState<ImageItem[]>([]);
   const [loading, setLoading] = useState(false);
@@ -26,10 +26,10 @@ const ProjectDetail: React.FC = () => {
 
   // 加载图片列表
   const loadImages = async () => {
-    if (!id) return;
+    if (!projectId) return;
     setLoading(true);
     try {
-      const response = await imageApi.getImagesByProject(id);
+      const response = await imageApi.getImagesByProject(projectId);
       setImages(response.data || []);
     } catch {
       message.error('加载图片列表失败');
@@ -40,17 +40,17 @@ const ProjectDetail: React.FC = () => {
 
   useEffect(() => {
     loadImages();
-  }, [id]);
+  }, [projectId]);
 
   // 上传配置
   const uploadProps: UploadProps = {
     name: 'file',
     action: '/api/images/upload',
-    data: () => ({ projectId: id }),
+    data: () => ({ projectId }),
     showUploadList: false,
     accept: 'image/*',
     beforeUpload: (file) => {
-      if (!id) {
+      if (!projectId) {
         message.error('项目ID不存在，请刷新页面重试');
         return false;
       }
@@ -143,7 +143,7 @@ const ProjectDetail: React.FC = () => {
                       key="annotate"
                       type="link"
                       icon={<AimOutlined />}
-                      onClick={() => navigate(`/projects/${id}/images/${item.id}`)}
+                      onClick={() => navigate(`/projects/${projectId}/images/${item.id}`)}
                     >
                       标注
                     </Button>,
