@@ -46,10 +46,14 @@ const ProjectDetail: React.FC = () => {
   const uploadProps: UploadProps = {
     name: 'file',
     action: '/api/images/upload',
-    data: { projectId: id },
+    data: () => ({ projectId: id }),
     showUploadList: false,
     accept: 'image/*',
     beforeUpload: (file) => {
+      if (!id) {
+        message.error('项目ID不存在，请刷新页面重试');
+        return false;
+      }
       const isImage = file.type.startsWith('image/');
       if (!isImage) {
         message.error('只能上传图片文件！');
